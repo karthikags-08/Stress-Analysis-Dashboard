@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StressEye — VR Stress Detection System</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#06080d;--sur:#0e1117;--sur2:#151920;--sur3:#1c2130;
+  --brd:rgba(255,255,255,0.06);--brd2:rgba(255,255,255,0.12);
+  --acc:#00f5a0;--adim:rgba(0,245,160,0.12);
+  --blu:#4f8ef7;--bdim:rgba(79,142,247,0.12);
+  --amb:#f5a623;--amdim:rgba(245,166,35,0.12);
+  --red:#f74f4f;--rdim:rgba(247,79,79,0.12);
+  --pur:#b07ef7;
+  --low:#00f5a0;--med:#f5a623;--hi:#f74f4f;
+  --txt:#e8edf5;--mut:#5a6478;--mut2:#8892a4;
+  --fm:'Syne',sans-serif;--mono:'Space Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--fm);background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden}
+.gbg{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(0,245,160,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,160,0.022) 1px,transparent 1px);
+  background-size:48px 48px}
+.orb{position:fixed;pointer-events:none;z-index:0;border-radius:50%;filter:blur(80px);animation:od 12s ease-in-out infinite}
+.orb1{width:500px;height:500px;top:-180px;left:-120px;background:radial-gradient(circle,rgba(0,245,160,0.07),transparent 70%)}
+.orb2{width:350px;height:350px;bottom:-80px;right:-80px;background:radial-gradient(circle,rgba(79,142,247,0.06),transparent 70%);animation-delay:-6s}
+@keyframes od{0%,100%{transform:translate(0,0)}50%{transform:translate(50px,35px)}}
+.shell{position:relative;z-index:1;display:flex;min-height:100vh}
+.sidebar{width:230px;flex-shrink:0;background:var(--sur);border-right:1px solid var(--brd);
+  display:flex;flex-direction:column;padding:24px 0;position:fixed;top:0;bottom:0;left:0;z-index:100;overflow-y:auto}
+.slogo{padding:0 20px 20px;border-bottom:1px solid var(--brd);margin-bottom:14px}
+.lmark{display:flex;align-items:center;gap:10px}
+.leye{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--acc),var(--blu));
+  display:flex;align-items:center;justify-content:center;font-size:20px}
+.lname{font-family:var(--mono);font-size:15px;font-weight:700}
+.lver{font-size:10px;color:var(--mut);margin-top:1px}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;
+  font-size:13px;font-weight:600;color:var(--mut2);transition:all .2s;border-left:2px solid transparent;user-select:none}
+.ni:hover{color:var(--txt);background:rgba(255,255,255,0.03)}
+.ni.act{color:var(--acc);border-left-color:var(--acc);background:var(--adim)}
+.ni-ic{font-size:15px;width:20px;text-align:center}
+.nbadge{margin-left:auto;font-family:var(--mono);font-size:10px;background:var(--adim);color:var(--acc);padding:1px 6px;border-radius:4px}
+.sbottom{margin-top:auto;padding:14px 20px;border-top:1px solid var(--brd)}
+.sdot{width:8px;height:8px;border-radius:50%;background:var(--mut);display:inline-block}
+.sdot.live{background:var(--acc);animation:blink 1.4s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.main{margin-left:230px;flex:1;padding:26px 30px;min-height:100vh}
+.page{display:none}
+.page.act{display:block;animation:pi .3s ease}
+@keyframes pi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:10px}
+.pt{font-size:21px;font-weight:800;letter-spacing:-.3px}
+.ps{font-size:13px;color:var(--mut2);margin-top:3px}
+.btn{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px;
+  padding:8px 16px;border-radius:8px;cursor:pointer;border:1px solid;transition:all .2s;background:none;color:inherit}
+.btn-p{background:var(--acc);border-color:var(--acc);color:#000}
+.btn-p:hover{background:#00d98e}
+.btn-g{border-color:var(--brd2);color:var(--mut2)}
+.btn-g:hover{border-color:var(--acc);color:var(--acc)}
+.btn-d{background:var(--rdim);border-color:var(--red);color:var(--red)}
+.btn-w{background:var(--amdim);border-color:var(--amb);color:var(--amb)}
+.card{background:var(--sur);border:1px solid var(--brd);border-radius:14px;padding:20px 22px}
+.ct{font-size:11px;font-weight:700;color:var(--mut2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px}
+.krow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.kpi{background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kg::before{background:var(--acc)}.kb::before{background:var(--blu)}.ka::before{background:var(--amb)}.kr::before{background:var(--pur)}
+.kv{font-family:var(--mono);font-size:24px;font-weight:700;line-height:1;margin-bottom:5px}
+.kg .kv{color:var(--acc)}.kb .kv{color:var(--blu)}.ka .kv{color:var(--amb)}.kr .kv{color:var(--pur)}
+.kl{font-size:12px;color:var(--mut2)}.kd{font-size:11px;margin-top:4px}
+.kd.up{color:var(--acc)}.kd.dn{color:var(--red)}.kd.neu{color:var(--mut2)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+.g21{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-bottom:16px}
+.tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--sur2);padding:4px;border-radius:10px;border:1px solid var(--brd)}
+.tab{flex:1;padding:8px 12px;text-align:center;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--mut2);transition:all .2s}
+.tab.act{background:var(--sur);color:var(--acc);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.ds-grid{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--brd);border-radius:10px;overflow:hidden;margin-bottom:14px}
+.ds-full{grid-column:1/-1}
+.ds-head{padding:10px 14px;background:var(--sur2);border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between}
+.ds-htitle{font-family:var(--mono);font-size:10px;color:var(--acc);letter-spacing:.08em}
+.ds-row{display:flex;align-items:center;border-bottom:1px solid var(--brd)}
+.ds-row:last-child{border-bottom:none}
+.ds-lbl{padding:9px 12px;font-size:12px;color:var(--mut2);width:145px;flex-shrink:0;font-weight:600;border-right:1px solid var(--brd)}
+.ds-inp{flex:1;background:transparent;border:none;outline:none;color:var(--txt);font-family:var(--mono);font-size:13px;padding:9px 12px;width:100%;transition:background .2s}
+.ds-inp:focus{background:rgba(0,245,160,0.05)}
+.ds-inp:hover{background:rgba(255,255,255,0.02)}
+.ds-divider{background:var(--sur2);border-right:1px solid var(--brd)}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.cambox{background:#000;border-radius:12px;overflow:hidden;border:1px solid var(--brd);position:relative;aspect-ratio:4/3}
+.camfeed{width:100%;height:100%;object-fit:cover;display:block}
+.camover{position:absolute;inset:0;pointer-events:none}
+.ccorner{position:absolute;width:16px;height:16px;border-color:var(--acc);border-style:solid;border-width:0}
+.ccorner.tl{top:12px;left:12px;border-top-width:2px;border-left-width:2px}
+.ccorner.tr{top:12px;right:12px;border-top-width:2px;border-right-width:2px}
+.ccorner.bl{bottom:12px;left:12px;border-bottom-width:2px;border-left-width:2px}
+.ccorner.br{bottom:12px;right:12px;border-bottom-width:2px;border-right-width:2px}
+.clabel{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);
+  border:1px solid var(--brd2);font-family:var(--mono);font-size:10px;color:var(--acc);padding:3px 10px;border-radius:4px;white-space:nowrap}
+.cfps{position:absolute;bottom:12px;right:12px;background:rgba(0,0,0,.7);border:1px solid var(--brd2);font-family:var(--mono);font-size:10px;color:var(--mut2);padding:3px 8px;border-radius:4px}
+.cstat{position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:5px;background:rgba(0,0,0,.7);border:1px solid var(--brd2);font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px}
+.nocam{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--mut);text-align:center;padding:20px}
+.em-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.emb{background:var(--sur2);border:1px solid var(--brd);border-radius:10px;padding:14px;position:relative;overflow:hidden}
+.emb::before{content:'';position:absolute;top:0;left:0;right:0;height:1px}
+.eb::before{background:var(--acc)}.ep::before{background:var(--blu)}.eg::before{background:var(--amb)}.es::before{background:var(--pur)}
+.eml{font-size:10px;color:var(--mut2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.emv{font-family:var(--mono);font-size:22px;font-weight:700;line-height:1}
+.eb .emv{color:var(--acc)}.ep .emv{color:var(--blu)}.eg .emv{color:var(--amb)}.es .emv{color:var(--pur)}
+.emu{font-size:10px;color:var(--mut);margin-top:3px}
+.gp{display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px}
+.gwrap{position:relative}
+.gct{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gbig{font-family:var(--mono);font-size:26px;font-weight:700;line-height:1}
+.gsml{font-size:11px;color:var(--mut2);margin-top:3px}
+.vbox{text-align:center;padding:12px 16px;border-radius:10px;border:1px solid var(--brd);width:100%}
+.vtag{font-family:var(--mono);font-size:16px;font-weight:700;letter-spacing:.05em;transition:color .5s}
+.vhint{font-size:12px;color:var(--mut2);margin-top:4px;line-height:1.5}
+.stbl{width:100%;border-collapse:collapse;font-size:13px}
+.stbl th{text-align:left;padding:10px 14px;font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--brd)}
+.stbl td{padding:11px 14px;border-bottom:1px solid var(--brd)}
+.stbl tr:last-child td{border-bottom:none}
+.stbl tr:hover td{background:rgba(255,255,255,0.02)}
+.chip{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700}
+.clo{background:rgba(0,245,160,0.12);color:var(--low)}.cme{background:rgba(245,166,35,0.12);color:var(--med)}.chi{background:rgba(247,79,79,0.12);color:var(--hi)}
+.cmat{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;font-size:12px;font-family:var(--mono)}
+.cmat-cell{padding:8px;text-align:center;border-radius:6px}
+.import-area{background:var(--sur2);border:2px dashed var(--brd2);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:12px}
+.import-area:hover,.import-area.drag{border-color:var(--acc);background:var(--adim)}
+.csv-pre{background:var(--sur2);border:1px solid var(--brd);border-radius:8px;padding:12px;font-family:var(--mono);font-size:11px;color:var(--mut2);max-height:120px;overflow:auto;white-space:pre}
+.toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--sur);border:1px solid var(--brd2);border-left:3px solid var(--acc);padding:12px 18px;border-radius:10px;font-size:13px;color:var(--txt);transform:translateY(80px);opacity:0;transition:all .3s ease;max-width:320px}
+.toast.show{transform:translateY(0);opacity:1}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:3px}
+@media(max-width:900px){
+  .sidebar{width:58px}.ni span:not(.ni-ic),.lname,.lver,.sbottom,.nbadge{display:none}
+  .main{margin-left:58px;padding:16px}
+  .krow,.g2,.g3,.g21,.mgrid,.ds-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="gbg"></div>
+<div class="orb orb1"></div><div class="orb orb2"></div>
+<div class="shell">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="slogo">
+    <div class="lmark">
+      <div class="leye">👁</div>
+      <div><div class="lname">StressEye</div><div class="lver">v2.0 · VCET 2026</div></div>
+    </div>
+  </div>
+  <nav>
+    <div class="ni act" data-page="dashboard"><span class="ni-ic">📊</span><span>Dashboard</span></div>
+    <div class="ni" data-page="dataset"><span class="ni-ic">🗂</span><span>Dataset Editor</span><span class="nbadge">EDIT</span></div>
+    <div class="ni" data-page="monitor"><span class="ni-ic">🎥</span><span>Live Monitor</span><span class="nbadge" id="liveBadge">OFF</span></div>
+    <div class="ni" data-page="sessions"><span class="ni-ic">📋</span><span>Sessions</span></div>
+    <div class="ni" data-page="analysis"><span class="ni-ic">📈</span><span>Analysis</span></div>
+    <div class="ni" data-page="about"><span class="ni-ic">ℹ️</span><span>About</span></div>
+  </nav>
+  <div class="sbottom">
+    <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mut2)">
+      <div class="sdot" id="sdot"></div><span id="sstat">Idle</span>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+
+<!-- ══════ DASHBOARD ══════ -->
+<div class="page act" id="page-dashboard">
+  <div class="ph">
+    <div><div class="pt">System Dashboard</div><div class="ps">All charts driven by dataset · go to Dataset Editor to change any value</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-g" onclick="goPage('dataset')">✏️ Edit Dataset</button>
+      <button class="btn btn-g" onclick="exportReport()">⬇ Export Report</button>
+      <button class="btn btn-p" onclick="goPage('monitor')">▶ Live Monitor</button>
+    </div>
+  </div>
+  <div class="krow">
+    <div class="kpi kg"><div class="kv" id="k-acc">92.4%</div><div class="kl">Overall Accuracy</div><div class="kd up" id="k-acc-d">+21.2pp vs baseline</div></div>
+    <div class="kpi kb"><div class="kv" id="k-lat">&lt;18ms</div><div class="kl">Inference Latency</div><div class="kd up" id="k-latp-d">99.1% within target</div></div>
+    <div class="kpi ka"><div class="kv" id="k-par">248</div><div class="kl">Participants</div><div class="kd up" id="k-par-d">30 min sessions · 7 days demo data</div></div>
+    <div class="kpi kr"><div class="kv" id="k-f1">92.4%</div><div class="kl">F1-Score (Macro)</div><div class="kd up" id="k-f1-d">Balanced classifier</div></div>
+  </div>
+  <div class="g21">
+    <div class="card"><div class="ct">Baseline Model Comparison — Accuracy %</div><div style="position:relative;height:230px"><canvas id="cmpChart"></canvas></div></div>
+    <div class="card"><div class="ct">Per-Class Performance</div><div style="position:relative;height:230px"><canvas id="classChart"></canvas></div></div>
+  </div>
+  <div class="g3">
+    <div class="card"><div class="ct">Metrics Radar</div><div style="position:relative;height:190px"><canvas id="radarChart"></canvas></div></div>
+    <div class="card"><div class="ct">Stress Level Distribution</div><div style="position:relative;height:190px"><canvas id="distChart"></canvas></div></div>
+    <div class="card"><div class="ct">Precision vs Recall (scatter)</div><div style="position:relative;height:190px"><canvas id="prChart"></canvas></div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ct">7-Day Stress Trend (Demo Sessions)</div>
+      <div style="position:relative;height:160px"><canvas id="weekChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">Dataset Summary</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">
+        <div style="background:var(--sur2);border-radius:8px;padding:12px;border:1px solid var(--brd)">
+          <div style="font-size:10px;color:var(--mut2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Participants</div>
+          <div style="font-family:var(--mono);font-size:22px;color:var(--acc);font-weight:700">248</div>
+          <div style="font-size:11px;color:var(--mut);margin-top:3px">VCET volunteers · May 2026</div>
+        </div>
+        <div style="background:var(--sur2);border-radius:8px;padding:12px;border:1px solid var(--brd)">
+          <div style="font-size:10px;color:var(--mut2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Total Frames</div>
+          <div style="font-family:var(--mono);font-size:22px;color:var(--blu);font-weight:700">267K</div>
+          <div style="font-size:11px;color:var(--mut);margin-top:3px">@ 60 FPS · 30-min sessions</div>
+        </div>
+        <div style="background:var(--sur2);border-radius:8px;padding:12px;border:1px solid var(--brd)">
+          <div style="font-size:10px;color:var(--mut2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Labeled Samples</div>
+          <div style="font-family:var(--mono);font-size:22px;color:var(--amb);font-weight:700">7,440</div>
+          <div style="font-size:11px;color:var(--mut);margin-top:3px">Low / Medium / High stress</div>
+        </div>
+        <div style="background:var(--sur2);border-radius:8px;padding:12px;border:1px solid var(--brd)">
+          <div style="font-size:10px;color:var(--mut2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Train / Val / Test</div>
+          <div style="font-family:var(--mono);font-size:22px;color:var(--pur);font-weight:700">70/15/15</div>
+          <div style="font-size:11px;color:var(--mut);margin-top:3px">Stratified split · 5-fold CV</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ DATASET EDITOR ══════ -->
+<div class="page" id="page-dataset">
+  <div class="ph">
+    <div><div class="pt">Dataset Editor</div><div class="ps">Edit any field — charts and KPIs update instantly across the entire app</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-w" onclick="resetDataset()">↺ Reset Defaults</button>
+      <button class="btn btn-g" onclick="loadSampleCSV()">📄 Sample CSV</button>
+      <button class="btn btn-p" onclick="applyDataset()">✓ Apply &amp; Refresh</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab act" onclick="switchTab('model')">🧠 Model Metrics</div>
+    <div class="tab" onclick="switchTab('baseline')">📊 Baselines</div>
+    <div class="tab" onclick="switchTab('eyefeat')">👁 Eye Features</div>
+    <div class="tab" onclick="switchTab('csvimport')">📥 CSV Import</div>
+  </div>
+
+  <!-- MODEL METRICS TAB -->
+  <div id="tab-model">
+    <div class="g2">
+      <div>
+        <div class="ct">Per-Class Classification Results</div>
+        <div class="ds-grid">
+          <div>
+            <div class="ds-head"><span class="ds-htitle">LOW STRESS CLASS</span></div>
+            <div class="ds-row"><span class="ds-lbl">Accuracy %</span><input class="ds-inp" id="d-low-acc" value="94.2" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl">Precision %</span><input class="ds-inp" id="d-low-pre" value="93.5" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl">Recall %</span><input class="ds-inp" id="d-low-rec" value="95.1" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl">F1-Score %</span><input class="ds-inp" id="d-low-f1" value="94.3" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+          </div>
+          <div class="ds-divider">
+            <div class="ds-head"><span class="ds-htitle">MEDIUM STRESS CLASS</span></div>
+            <div class="ds-row"><span class="ds-lbl">Accuracy %</span><input class="ds-inp" id="d-med-acc" value="91.3" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl">Precision %</span><input class="ds-inp" id="d-med-pre" value="90.8" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl">Recall %</span><input class="ds-inp" id="d-med-rec" value="91.9" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl">F1-Score %</span><input class="ds-inp" id="d-med-f1" value="91.3" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+          </div>
+        </div>
+        <div class="ds-grid" style="margin-top:0;border-top:none;border-radius:0 0 10px 10px">
+          <div>
+            <div class="ds-head"><span class="ds-htitle">HIGH STRESS CLASS</span></div>
+            <div class="ds-row"><span class="ds-lbl">Accuracy %</span><input class="ds-inp" id="d-hi-acc" value="91.7" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl">Precision %</span><input class="ds-inp" id="d-hi-pre" value="91.1" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl">Recall %</span><input class="ds-inp" id="d-hi-rec" value="92.3" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl">F1-Score %</span><input class="ds-inp" id="d-hi-f1" value="91.7" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+          </div>
+          <div class="ds-divider">
+            <div class="ds-head"><span class="ds-htitle">OVERALL (MACRO AVG)</span></div>
+            <div class="ds-row"><span class="ds-lbl">Accuracy %</span><input class="ds-inp" id="d-ov-acc" value="92.4" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl">Precision %</span><input class="ds-inp" id="d-ov-pre" value="91.8" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl">Recall %</span><input class="ds-inp" id="d-ov-rec" value="93.1" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl">F1-Score %</span><input class="ds-inp" id="d-ov-f1" value="92.4" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="ct">Experiment Parameters</div>
+        <div class="ds-grid" style="grid-template-columns:1fr">
+          <div>
+            <div class="ds-head"><span class="ds-htitle">SETUP VALUES</span></div>
+            <div class="ds-row"><span class="ds-lbl">Participants</span><input class="ds-inp" id="d-par" value="200" type="number" min="1" step="1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl">Session (min)</span><input class="ds-inp" id="d-sess" value="30" type="number" min="1" step="1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl">Camera FPS</span><input class="ds-inp" id="d-fps" value="60" type="number" min="1" step="1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl">Latency (ms)</span><input class="ds-inp" id="d-lat" value="20" type="number" min="1" step="1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl">% in Latency</span><input class="ds-inp" id="d-latp" value="98.7" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+          </div>
+        </div>
+        <div class="ct" style="margin-top:14px">Stress Distribution %</div>
+        <div class="ds-grid" style="grid-template-columns:1fr">
+          <div>
+            <div class="ds-head"><span class="ds-htitle">PARTICIPANT SPLIT</span></div>
+            <div class="ds-row"><span class="ds-lbl">Low stress %</span><input class="ds-inp" id="d-dist-lo" value="33" type="number" min="0" max="100" step="1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl">Medium stress %</span><input class="ds-inp" id="d-dist-me" value="33" type="number" min="0" max="100" step="1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl">High stress %</span><input class="ds-inp" id="d-dist-hi" value="34" type="number" min="0" max="100" step="1" oninput="liveUpdate()"></div>
+          </div>
+        </div>
+        <div class="ct" style="margin-top:14px">Confusion Matrix Counts</div>
+        <div class="ds-grid" style="grid-template-columns:1fr 1fr 1fr">
+          <div>
+            <div class="ds-head"><span class="ds-htitle">ACT LOW</span></div>
+            <div class="ds-row"><span class="ds-lbl" style="width:70px">→Low</span><input class="ds-inp" id="cm-ll" value="94" type="number" min="0" step="1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl" style="width:70px">→Med</span><input class="ds-inp" id="cm-lm" value="4" type="number" min="0" step="1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl" style="width:70px">→High</span><input class="ds-inp" id="cm-lh" value="2" type="number" min="0" step="1" oninput="liveUpdate()"></div>
+          </div>
+          <div class="ds-divider">
+            <div class="ds-head"><span class="ds-htitle">ACT MED</span></div>
+            <div class="ds-row"><span class="ds-lbl" style="width:70px">→Low</span><input class="ds-inp" id="cm-ml" value="5" type="number" min="0" step="1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl" style="width:70px">→Med</span><input class="ds-inp" id="cm-mm" value="91" type="number" min="0" step="1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl" style="width:70px">→High</span><input class="ds-inp" id="cm-mh" value="4" type="number" min="0" step="1" oninput="liveUpdate()"></div>
+          </div>
+          <div class="ds-divider">
+            <div class="ds-head"><span class="ds-htitle">ACT HIGH</span></div>
+            <div class="ds-row"><span class="ds-lbl" style="width:70px">→Low</span><input class="ds-inp" id="cm-hl" value="3" type="number" min="0" step="1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl" style="width:70px">→Med</span><input class="ds-inp" id="cm-hm" value="5" type="number" min="0" step="1" oninput="liveUpdate()"></div>
+            <div class="ds-row"><span class="ds-lbl" style="width:70px">→High</span><input class="ds-inp" id="cm-hh" value="92" type="number" min="0" step="1" oninput="liveUpdate()"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BASELINE TAB -->
+  <div id="tab-baseline" style="display:none">
+    <div class="card">
+      <div class="ct">Baseline System Names &amp; Accuracies — edit freely, comparison chart updates instantly</div>
+      <div class="ds-grid" style="grid-template-columns:1fr 1fr">
+        <div>
+          <div class="ds-head"><span class="ds-htitle">SYSTEM NAME</span><span style="font-size:10px;color:var(--mut)">editable label</span></div>
+          <div class="ds-row"><span class="ds-lbl" style="width:50px">Sys 1</span><input class="ds-inp" id="b1n" value="Proposed CNN-LSTM" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl" style="width:50px">Sys 2</span><input class="ds-inp" id="b2n" value="SVM w/ Eye Features" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl" style="width:50px">Sys 3</span><input class="ds-inp" id="b3n" value="Unimodal Pupil CNN" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl" style="width:50px">Sys 4</span><input class="ds-inp" id="b4n" value="Facial Expression" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl" style="width:50px">Sys 5</span><input class="ds-inp" id="b5n" value="Rule-Based Classifier" oninput="liveUpdate()"></div>
+        </div>
+        <div class="ds-divider">
+          <div class="ds-head"><span class="ds-htitle">ACCURACY %</span><span style="font-size:10px;color:var(--mut)">numeric</span></div>
+          <div class="ds-row"><span class="ds-lbl" style="width:50px">Acc</span><input class="ds-inp" id="b1v" value="92.4" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl" style="width:50px">Acc</span><input class="ds-inp" id="b2v" value="85.4" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl" style="width:50px">Acc</span><input class="ds-inp" id="b3v" value="83.6" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl" style="width:50px">Acc</span><input class="ds-inp" id="b4v" value="79.3" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl" style="width:50px">Acc</span><input class="ds-inp" id="b5v" value="71.2" type="number" min="0" max="100" step="0.1" oninput="liveUpdate()"></div>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:10px 14px;background:var(--sur2);border-radius:8px;font-size:12px;color:var(--mut2)">
+        💡 System 1 is your proposed model. Change any name or accuracy value — the comparison chart on Dashboard updates in real-time.
+      </div>
+    </div>
+  </div>
+
+  <!-- EYE FEATURES TAB -->
+  <div id="tab-eyefeat" style="display:none">
+    <div class="card">
+      <div class="ct">Eye Feature Ranges per Stress Level — used in Live Monitor simulation</div>
+      <div class="ds-grid" style="grid-template-columns:1fr 1fr 1fr">
+        <div>
+          <div class="ds-head"><span class="ds-htitle" style="color:var(--low)">LOW STRESS</span></div>
+          <div class="ds-row"><span class="ds-lbl">Blink min</span><input class="ds-inp" id="ef-bl-lo" value="14" type="number" step="1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Blink max</span><input class="ds-inp" id="ef-bl-hi" value="20" type="number" step="1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Pupil min</span><input class="ds-inp" id="ef-pl-lo" value="3.8" type="number" step="0.1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Pupil max</span><input class="ds-inp" id="ef-pl-hi" value="4.5" type="number" step="0.1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Gaze min°</span><input class="ds-inp" id="ef-gl-lo" value="8" type="number" step="1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Gaze max°</span><input class="ds-inp" id="ef-gl-hi" value="14" type="number" step="1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Stab min σ</span><input class="ds-inp" id="ef-sl-lo" value="0.5" type="number" step="0.1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Stab max σ</span><input class="ds-inp" id="ef-sl-hi" value="1.0" type="number" step="0.1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Stress % min</span><input class="ds-inp" id="ef-pl-plo" value="15" type="number" step="1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Stress % max</span><input class="ds-inp" id="ef-pl-phi" value="38" type="number" step="1" oninput="liveUpdate()"></div>
+        </div>
+        <div class="ds-divider">
+          <div class="ds-head"><span class="ds-htitle" style="color:var(--med)">MEDIUM STRESS</span></div>
+          <div class="ds-row"><span class="ds-lbl">Blink min</span><input class="ds-inp" id="ef-bm-lo" value="20" type="number" step="1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Blink max</span><input class="ds-inp" id="ef-bm-hi" value="30" type="number" step="1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Pupil min</span><input class="ds-inp" id="ef-pm-lo" value="4.5" type="number" step="0.1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Pupil max</span><input class="ds-inp" id="ef-pm-hi" value="5.5" type="number" step="0.1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Gaze min°</span><input class="ds-inp" id="ef-gm-lo" value="14" type="number" step="1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Gaze max°</span><input class="ds-inp" id="ef-gm-hi" value="22" type="number" step="1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Stab min σ</span><input class="ds-inp" id="ef-sm-lo" value="1.0" type="number" step="0.1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Stab max σ</span><input class="ds-inp" id="ef-sm-hi" value="1.8" type="number" step="0.1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Stress % min</span><input class="ds-inp" id="ef-pm-plo" value="42" type="number" step="1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Stress % max</span><input class="ds-inp" id="ef-pm-phi" value="65" type="number" step="1" oninput="liveUpdate()"></div>
+        </div>
+        <div class="ds-divider">
+          <div class="ds-head"><span class="ds-htitle" style="color:var(--hi)">HIGH STRESS</span></div>
+          <div class="ds-row"><span class="ds-lbl">Blink min</span><input class="ds-inp" id="ef-bh-lo" value="30" type="number" step="1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Blink max</span><input class="ds-inp" id="ef-bh-hi" value="45" type="number" step="1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Pupil min</span><input class="ds-inp" id="ef-ph-lo" value="5.5" type="number" step="0.1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Pupil max</span><input class="ds-inp" id="ef-ph-hi" value="7.0" type="number" step="0.1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Gaze min°</span><input class="ds-inp" id="ef-gh-lo" value="22" type="number" step="1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Gaze max°</span><input class="ds-inp" id="ef-gh-hi" value="35" type="number" step="1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Stab min σ</span><input class="ds-inp" id="ef-sh-lo" value="2.0" type="number" step="0.1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Stab max σ</span><input class="ds-inp" id="ef-sh-hi" value="3.5" type="number" step="0.1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Stress % min</span><input class="ds-inp" id="ef-ph-plo" value="68" type="number" step="1" oninput="liveUpdate()"></div>
+          <div class="ds-row"><span class="ds-lbl">Stress % max</span><input class="ds-inp" id="ef-ph-phi" value="90" type="number" step="1" oninput="liveUpdate()"></div>
+        </div>
+      </div>
+      <div style="margin-top:10px;padding:10px 14px;background:var(--sur2);border-radius:8px;font-size:12px;color:var(--mut2)">
+        💡 These ranges are used by the Live Monitor simulation. Change them and the simulated eye metrics in the monitor will reflect your new ranges automatically.
+      </div>
+    </div>
+  </div>
+
+  <!-- CSV IMPORT TAB -->
+  <div id="tab-csvimport" style="display:none">
+    <div class="g2">
+      <div class="card">
+        <div class="ct">Import from CSV File</div>
+        <div class="import-area" id="dropZone" onclick="document.getElementById('csvFile').click()" ondragover="dragOver(event)" ondrop="dropFile(event)" ondragleave="dragLeave()">
+          <input type="file" id="csvFile" accept=".csv,.txt" style="display:none" onchange="loadCSV(event)">
+          <div style="font-size:32px;margin-bottom:8px">📂</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px">Drop CSV here or click to browse</div>
+          <div style="font-size:12px;color:var(--mut2)">Columns: metric, low, medium, high, overall</div>
+        </div>
+        <div class="ct">Expected Format</div>
+        <div class="csv-pre">metric,low,medium,high,overall
+accuracy,94.2,91.3,91.7,92.4
+precision,93.5,90.8,91.1,91.8
+recall,95.1,91.9,92.3,93.1
+f1,94.3,91.3,91.7,92.4
+participants,,,,200
+sessions_min,,,,30</div>
+      </div>
+      <div class="card" id="csvPreviewCard" style="display:none">
+        <div class="ct">Parsed Preview</div>
+        <div id="csvParsed"></div>
+        <div style="margin-top:14px;display:flex;gap:8px">
+          <button class="btn btn-p" onclick="applyCSVData()">✓ Apply This Data</button>
+          <button class="btn btn-g" onclick="document.getElementById('csvPreviewCard').style.display='none'">✕ Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ MONITOR ══════ -->
+<div class="page" id="page-monitor">
+  <div class="ph">
+    <div><div class="pt">Live Eye Monitor</div><div class="ps">Webcam-based eye tracking · CNN-LSTM stress inference · simulated output</div></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span id="timerDisp" style="font-family:var(--mono);font-size:14px;color:var(--mut2)">00:00</span>
+      <button class="btn btn-p" id="startBtn" onclick="toggleSession()">▶ Start Session</button>
+      <button class="btn btn-g" id="saveBtn" onclick="saveSession()" disabled style="opacity:.4">💾 Save Session</button>
+    </div>
+  </div>
+  <div class="mgrid">
+    <div>
+      <div class="ct" style="margin-bottom:10px">Camera Feed · IR Overlay Simulation</div>
+      <div class="cambox">
+        <video id="camFeed" class="camfeed" autoplay muted playsinline></video>
+        <canvas id="camCanvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
+        <div class="camover">
+          <div class="ccorner tl"></div><div class="ccorner tr"></div>
+          <div class="ccorner bl"></div><div class="ccorner br"></div>
+          <div class="clabel" id="camLabel">AWAITING CAMERA</div>
+          <div class="cfps" id="camFps">-- FPS</div>
+          <div class="cstat" id="camStat"><div class="sdot"></div><span style="margin-left:4px">IDLE</span></div>
+        </div>
+        <div class="nocam" id="noCam">
+          <div style="font-size:40px;opacity:.3">📷</div>
+          <div style="font-size:13px;font-weight:600">Click Start Session to enable camera</div>
+          <div style="font-size:11px;color:var(--mut);margin-top:4px">Allow browser camera permission when prompted</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <div class="ct">Stress Timeline · Live Session</div>
+        <div style="position:relative;height:110px"><canvas id="tlChart"></canvas></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <div class="ct" style="margin-bottom:10px">Eye Metrics · Real-Time (from Dataset Editor ranges)</div>
+        <div class="em-grid">
+          <div class="emb eb"><div class="eml">Blink Rate</div><div class="emv" id="mBlink">--</div><div class="emu">blinks / min</div></div>
+          <div class="emb ep"><div class="eml">Pupil Size</div><div class="emv" id="mPupil">--</div><div class="emu">calibrated px</div></div>
+          <div class="emb eg"><div class="eml">Gaze Direction</div><div class="emv" id="mGaze">--</div><div class="emu">angular offset °</div></div>
+          <div class="emb es"><div class="eml">Gaze Stability</div><div class="emv" id="mStab">--</div><div class="emu">std deviation σ</div></div>
+        </div>
+      </div>
+      <div class="card gp">
+        <div class="gwrap">
+          <svg width="150" height="150" viewBox="0 0 150 150" style="transform:rotate(-90deg)">
+            <circle cx="75" cy="75" r="60" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="11"/>
+            <circle id="gaugeArc" cx="75" cy="75" r="60" fill="none" stroke="var(--acc)"
+              stroke-width="11" stroke-linecap="round" stroke-dasharray="377" stroke-dashoffset="377"
+              style="transition:stroke-dashoffset .8s ease,stroke .5s"/>
+          </svg>
+          <div class="gct">
+            <div class="gbig" id="gPct" style="color:var(--acc)">0%</div>
+            <div class="gsml">Stress Level</div>
+          </div>
+        </div>
+        <div class="vbox">
+          <div class="vtag" id="vTag" style="color:var(--mut2)">— NOT STARTED —</div>
+          <div class="vhint" id="vHint">Start a session to begin detection</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ct">Scenario Controls</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="btn btn-g" id="scLow" onclick="setScen('low')">😌 Low</button>
+          <button class="btn btn-g" id="scMed" onclick="setScen('med')">😐 Medium</button>
+          <button class="btn btn-g" id="scHigh" onclick="setScen('high')">😰 High</button>
+          <button class="btn btn-g" id="scAuto" onclick="setScen('auto')" style="border-color:var(--acc);color:var(--acc)">🔀 Auto</button>
+        </div>
+        <div style="font-size:12px;color:var(--mut2);line-height:1.6">
+          💡 Eye metric ranges are pulled from the <strong style="color:var(--acc)">Dataset Editor → Eye Features tab</strong>. Change them there and the simulation here updates automatically.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ SESSIONS ══════ -->
+<div class="page" id="page-sessions">
+  <div class="ph">
+    <div><div class="pt">Recorded Sessions</div><div class="ps">All saved monitoring sessions · stored in browser · persists across refreshes</div></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-g" onclick="exportSessions()">⬇ Export CSV</button>
+      <button class="btn btn-d" onclick="clearSessions()">🗑 Clear All</button>
+    </div>
+  </div>
+  <div class="card">
+    <table class="stbl">
+      <thead><tr>
+        <th>#</th><th>Date &amp; Time</th><th>Duration</th><th>Avg Stress %</th>
+        <th>Peak Level</th><th>Avg Blink</th><th>Avg Pupil</th><th>Action</th>
+      </tr></thead>
+      <tbody id="sessBody">
+        <tr><td colspan="8" style="text-align:center;color:var(--mut);padding:40px">No sessions yet. Start a session in Live Monitor and click Save.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════ ANALYSIS ══════ -->
+<div class="page" id="page-analysis">
+  <div class="ph">
+    <div><div class="pt">System Analysis</div><div class="ps">Feature importance sliders · confusion matrix · eye feature table · all driven by dataset</div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ct">Feature Importance — drag sliders to adjust weights</div>
+      <div style="position:relative;height:200px"><canvas id="featChart"></canvas></div>
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;font-size:12px">
+          <span style="color:var(--acc);width:120px">Pupil Size</span>
+          <input type="range" id="fw-pupil" min="0" max="100" value="38" oninput="updateFeatChart()" style="flex:1;accent-color:var(--acc)">
+          <span style="font-family:var(--mono);font-size:11px;width:36px;text-align:right" id="fw-pupil-v">38%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:12px">
+          <span style="color:var(--pur);width:120px">Gaze Stability</span>
+          <input type="range" id="fw-stab" min="0" max="100" value="30" oninput="updateFeatChart()" style="flex:1;accent-color:var(--pur)">
+          <span style="font-family:var(--mono);font-size:11px;width:36px;text-align:right" id="fw-stab-v">30%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:12px">
+          <span style="color:var(--blu);width:120px">Blink Rate</span>
+          <input type="range" id="fw-blink" min="0" max="100" value="20" oninput="updateFeatChart()" style="flex:1;accent-color:var(--blu)">
+          <span style="font-family:var(--mono);font-size:11px;width:36px;text-align:right" id="fw-blink-v">20%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:12px">
+          <span style="color:var(--amb);width:120px">Gaze Direction</span>
+          <input type="range" id="fw-gaze" min="0" max="100" value="12" oninput="updateFeatChart()" style="flex:1;accent-color:var(--amb)">
+          <span style="font-family:var(--mono);font-size:11px;width:36px;text-align:right" id="fw-gaze-v">12%</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">Confusion Matrix — from Dataset Editor</div>
+      <div class="cmat" id="confMat"></div>
+      <div style="margin-top:14px;font-size:12px;color:var(--mut2);line-height:1.6">
+        Edit confusion matrix values in <strong style="color:var(--acc)">Dataset Editor → Model Metrics</strong>. Diagonal cells (green) are correct predictions.
+      </div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ct">Eye Feature Ranges — from Dataset Editor</div>
+      <table style="width:100%;font-size:13px;border-collapse:collapse">
+        <thead><tr style="border-bottom:1px solid var(--brd)">
+          <th style="text-align:left;padding:8px 6px;color:var(--mut);font-size:11px;font-weight:700;text-transform:uppercase">Feature</th>
+          <th style="text-align:left;padding:8px 6px;color:var(--low);font-size:11px;font-weight:700;text-transform:uppercase">LOW</th>
+          <th style="text-align:left;padding:8px 6px;color:var(--med);font-size:11px;font-weight:700;text-transform:uppercase">MEDIUM</th>
+          <th style="text-align:left;padding:8px 6px;color:var(--hi);font-size:11px;font-weight:700;text-transform:uppercase">HIGH</th>
+        </tr></thead>
+        <tbody id="efBody"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="ct">Session Statistics</div>
+      <div id="sessStats" style="font-size:13px;color:var(--mut2)">No sessions recorded yet.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ ABOUT ══════ -->
+<div class="page" id="page-about">
+  <div class="ph"><div><div class="pt">About This Project</div><div class="ps">Stress Level Detection Using Eye Tracking in VR Phone Headset · May 2026</div></div></div>
+  <div class="g2" style="margin-bottom:16px">
+    <div class="card">
+      <div class="ct">Team</div>
+      <div style="display:flex;flex-direction:column;gap:14px;margin-top:4px">
+        <div style="display:flex;align-items:center;gap:14px"><div style="width:42px;height:42px;border-radius:10px;background:var(--adim);border:1px solid rgba(0,245,160,.3);display:flex;align-items:center;justify-content:center;font-size:20px">👩</div><div><div style="font-weight:700">Karthika G S</div><div style="font-size:12px;color:var(--mut2);font-family:var(--mono)">23CSR041</div></div></div>
+        <div style="display:flex;align-items:center;gap:14px"><div style="width:42px;height:42px;border-radius:10px;background:var(--bdim);border:1px solid rgba(79,142,247,.3);display:flex;align-items:center;justify-content:center;font-size:20px">👨</div><div><div style="font-weight:700">Kavin S</div><div style="font-size:12px;color:var(--mut2);font-family:var(--mono)">23CSR043</div></div></div>
+        <div style="display:flex;align-items:center;gap:14px"><div style="width:42px;height:42px;border-radius:10px;background:var(--amdim);border:1px solid rgba(245,166,35,.3);display:flex;align-items:center;justify-content:center;font-size:20px">👨</div><div><div style="font-weight:700">Mohamedsalmankan S</div><div style="font-size:12px;color:var(--mut2);font-family:var(--mono)">23CSR052</div></div></div>
+        <div style="margin-top:6px;padding-top:12px;border-top:1px solid var(--brd);font-size:13px;color:var(--mut2);line-height:1.8">
+          <div>🏛 Velalar College of Engineering &amp; Technology</div><div>📍 Erode – 638012, Tamil Nadu</div>
+          <div>📅 B.E. Computer Science · May 2026</div><div>👩‍🏫 Guide: Ms. M. Nanthini, M.E.</div><div>👩‍💼 HoD: Dr. S. Jabeen Begum, M.E., Ph.D.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">Abstract</div>
+      <div style="font-size:13px;color:var(--mut2);line-height:1.85">
+        This system presents a contactless, non-intrusive, low-cost solution for real-time stress detection based on eye metrics, implemented on an affordable VR phone headset.<br><br>
+        A video stream from an inward-facing infrared camera is processed through five stages — IR capture → pre-processing (CLAHE, Gaussian) → feature extraction (blink rate, pupil size, gaze direction, gaze stability) → CNN-LSTM classification → AR visualization.<br><br>
+        The system achieves <strong style="color:var(--acc)">92.4% overall accuracy</strong> across three stress levels with <strong style="color:var(--blu)">&lt;18ms inference latency</strong> on Raspberry Pi 4, outperforming all baseline systems. Evaluated on <strong style="color:var(--pur)">248 participants</strong> across 7,440 labeled samples with a 70/15/15 train-val-test split.
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">System Pipeline</div>
+    <div style="display:flex;align-items:center;overflow-x:auto;padding-bottom:4px">
+      <div style="flex:1;text-align:center;padding:14px 8px;background:var(--sur2);border-radius:10px 0 0 10px;border:1px solid var(--brd);min-width:110px"><div style="font-size:22px;margin-bottom:6px">📡</div><div style="font-size:13px;font-weight:700">IR Capture</div><div style="font-size:11px;color:var(--mut2);margin-top:3px">60 FPS · VR headset</div></div>
+      <div style="color:var(--mut);padding:0 4px;font-size:20px">›</div>
+      <div style="flex:1;text-align:center;padding:14px 8px;background:var(--sur2);border:1px solid var(--brd);min-width:110px"><div style="font-size:22px;margin-bottom:6px">⚙️</div><div style="font-size:13px;font-weight:700">Pre-process</div><div style="font-size:11px;color:var(--mut2);margin-top:3px">CLAHE · Gaussian · ROI</div></div>
+      <div style="color:var(--mut);padding:0 4px;font-size:20px">›</div>
+      <div style="flex:1;text-align:center;padding:14px 8px;background:var(--sur2);border:1px solid var(--brd);min-width:110px"><div style="font-size:22px;margin-bottom:6px">👁</div><div style="font-size:13px;font-weight:700">Feature Extract</div><div style="font-size:11px;color:var(--mut2);margin-top:3px">Blink · Pupil · Gaze</div></div>
+      <div style="color:var(--mut);padding:0 4px;font-size:20px">›</div>
+      <div style="flex:1;text-align:center;padding:14px 8px;background:var(--sur2);border:1px solid var(--brd);min-width:110px"><div style="font-size:22px;margin-bottom:6px">🧠</div><div style="font-size:13px;font-weight:700">CNN-LSTM</div><div style="font-size:11px;color:var(--mut2);margin-top:3px">TF Lite · Pi4 edge</div></div>
+      <div style="color:var(--mut);padding:0 4px;font-size:20px">›</div>
+      <div style="flex:1;text-align:center;padding:14px 8px;background:var(--sur2);border-radius:0 10px 10px 0;border:1px solid var(--brd);min-width:110px"><div style="font-size:22px;margin-bottom:6px">📱</div><div style="font-size:13px;font-weight:700">AR Display</div><div style="font-size:11px;color:var(--mut2);margin-top:3px">Flask · Unity AR</div></div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+// ═══════════ CHART REGISTRY ═══════════
+const CH={};
+function mkC(id,cfg){if(CH[id])CH[id].destroy();CH[id]=new Chart(document.getElementById(id),cfg);return CH[id];}
+
+// ═══════════ READ DATASET ═══════════
+function DS(){
+  const n=id=>parseFloat(document.getElementById(id)?.value||0);
+  const s=id=>document.getElementById(id)?.value||'';
+  return{
+    low:{acc:n('d-low-acc'),pre:n('d-low-pre'),rec:n('d-low-rec'),f1:n('d-low-f1')},
+    med:{acc:n('d-med-acc'),pre:n('d-med-pre'),rec:n('d-med-rec'),f1:n('d-med-f1')},
+    hi: {acc:n('d-hi-acc'), pre:n('d-hi-pre'), rec:n('d-hi-rec'), f1:n('d-hi-f1')},
+    ov: {acc:n('d-ov-acc'), pre:n('d-ov-pre'), rec:n('d-ov-rec'), f1:n('d-ov-f1')},
+    par:n('d-par'),sess:n('d-sess'),fps:n('d-fps'),lat:n('d-lat'),latp:n('d-latp'),
+    dist:[n('d-dist-lo'),n('d-dist-me'),n('d-dist-hi')],
+    bl:[n('b1v'),n('b2v'),n('b3v'),n('b4v'),n('b5v')],
+    bn:[s('b1n'),s('b2n'),s('b3n'),s('b4n'),s('b5n')],
+    cm:{ll:n('cm-ll'),lm:n('cm-lm'),lh:n('cm-lh'),ml:n('cm-ml'),mm:n('cm-mm'),mh:n('cm-mh'),hl:n('cm-hl'),hm:n('cm-hm'),hh:n('cm-hh')},
+    ef:{
+      blink:{lo:[n('ef-bl-lo'),n('ef-bl-hi')],me:[n('ef-bm-lo'),n('ef-bm-hi')],hi:[n('ef-bh-lo'),n('ef-bh-hi')]},
+      pupil:{lo:[n('ef-pl-lo'),n('ef-pl-hi')],me:[n('ef-pm-lo'),n('ef-pm-hi')],hi:[n('ef-ph-lo'),n('ef-ph-hi')]},
+      gaze: {lo:[n('ef-gl-lo'),n('ef-gl-hi')],me:[n('ef-gm-lo'),n('ef-gm-hi')],hi:[n('ef-gh-lo'),n('ef-gh-hi')]},
+      stab: {lo:[n('ef-sl-lo'),n('ef-sl-hi')],me:[n('ef-sm-lo'),n('ef-sm-hi')],hi:[n('ef-sh-lo'),n('ef-sh-hi')]},
+      pct:  {lo:[n('ef-pl-plo'),n('ef-pl-phi')],me:[n('ef-pm-plo'),n('ef-pm-phi')],hi:[n('ef-ph-plo'),n('ef-ph-phi')]},
+    }
+  };
+}
+
+// ═══════════ REFRESH ALL ═══════════
+function refreshAll(){
+  const d=DS();
+  refreshKPIs(d);
+  refreshDash(d);
+  refreshConfMat(d);
+  refreshEFTable(d);
+  refreshSessStats();
+  updateFeatChart();
+  refreshWeekChart();
+}
+
+function refreshWeekChart(){
+  const el=document.getElementById('weekChart');if(!el)return;
+  const sess=[...ST.sessions].reverse().slice(-7);
+  if(!sess.length){return;}
+  const labels=sess.map(s=>s.date.split(',')[0]);
+  const vals=sess.map(s=>parseFloat(s.avgStress));
+  const colors=vals.map(v=>v<40?'rgba(0,245,160,.85)':v<65?'rgba(245,166,35,.85)':'rgba(247,79,79,.85)');
+  mkC('weekChart',{type:'bar',
+    data:{labels,datasets:[{label:'Avg Stress %',data:vals,backgroundColor:colors,borderRadius:5,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'Avg Stress: '+ctx.parsed.y+'%'}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#5a6478',font:{size:10}}},
+        y:{min:0,max:100,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#5a6478',callback:v=>v+'%'}}}}});
+}
+
+function refreshKPIs(d){
+  set('k-acc',d.ov.acc.toFixed(1)+'%');
+  set('k-f1',d.ov.f1.toFixed(1)+'%');
+  set('k-par',d.par);
+  set('k-lat','&lt;'+d.lat+'ms');
+  set('k-latp-d',d.latp.toFixed(1)+'% within target');
+  set('k-par-d',d.sess+' min sessions · 7-day demo data');
+  const diff=(d.ov.acc-Math.max(...d.bl.slice(1))).toFixed(1);
+  set('k-acc-d','+'+(+diff>0?diff:0)+'pp vs 2nd best');
+  set('k-f1-d',d.ov.f1>=90?'Well-balanced classifier':'Check class balance');
+}
+
+function refreshDash(d){
+  const BG=['rgba(0,245,160,.75)','rgba(79,142,247,.5)','rgba(176,126,247,.5)','rgba(245,166,35,.5)','rgba(247,79,79,.4)'];
+  const BD=['#00f5a0','#4f8ef7','#b07ef7','#f5a623','#f74f4f'];
+  const yMin=Math.floor((Math.min(...d.bl)-8)/5)*5;
+
+  mkC('cmpChart',{type:'bar',
+    data:{labels:d.bn,datasets:[{data:d.bl,backgroundColor:BG,borderColor:BD,borderWidth:1.5,borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#5a6478',font:{size:10},maxRotation:25}},
+        y:{min:Math.max(0,yMin),max:100,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#5a6478',callback:v=>v+'%'}}}}});
+
+  const allVals=[d.low.acc,d.med.acc,d.hi.acc,d.ov.acc,d.low.pre,d.med.pre,d.hi.pre,d.ov.pre,d.low.rec,d.med.rec,d.hi.rec,d.ov.rec];
+  const classMin=Math.floor((Math.min(...allVals)-4)/2)*2;
+  mkC('classChart',{type:'bar',
+    data:{labels:['Low','Medium','High','Overall'],
+      datasets:[
+        {label:'Accuracy',data:[d.low.acc,d.med.acc,d.hi.acc,d.ov.acc],backgroundColor:'rgba(0,245,160,.65)',borderColor:'#00f5a0',borderWidth:1.5,borderRadius:4},
+        {label:'Precision',data:[d.low.pre,d.med.pre,d.hi.pre,d.ov.pre],backgroundColor:'rgba(79,142,247,.65)',borderColor:'#4f8ef7',borderWidth:1.5,borderRadius:4},
+        {label:'Recall',data:[d.low.rec,d.med.rec,d.hi.rec,d.ov.rec],backgroundColor:'rgba(176,126,247,.65)',borderColor:'#b07ef7',borderWidth:1.5,borderRadius:4},
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#8892a4',boxWidth:10,font:{size:11}}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#5a6478'}},
+        y:{min:Math.max(0,classMin),max:100,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#5a6478',callback:v=>v+'%'}}}}});
+
+  const radMin=Math.floor((Math.min(d.ov.acc,d.ov.pre,d.ov.rec,d.ov.f1)-6)/2)*2;
+  mkC('radarChart',{type:'radar',
+    data:{labels:['Accuracy','Precision','Recall','F1-Score'],
+      datasets:[{label:'CNN-LSTM',data:[d.ov.acc,d.ov.pre,d.ov.rec,d.ov.f1],
+        backgroundColor:'rgba(0,245,160,.1)',borderColor:'#00f5a0',borderWidth:2,pointBackgroundColor:'#00f5a0',pointRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{r:{min:Math.max(0,radMin),max:100,grid:{color:'rgba(255,255,255,.06)'},angleLines:{color:'rgba(255,255,255,.06)'},
+        ticks:{color:'#5a6478',backdropColor:'transparent',font:{size:10},callback:v=>v+'%'},pointLabels:{color:'#8892a4',font:{size:11}}}}}});
+
+  mkC('distChart',{type:'doughnut',
+    data:{labels:['Low','Medium','High'],datasets:[{data:d.dist,
+      backgroundColor:['rgba(0,245,160,.7)','rgba(245,166,35,.7)','rgba(247,79,79,.7)'],
+      borderColor:['#00f5a0','#f5a623','#f74f4f'],borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',
+      plugins:{legend:{position:'bottom',labels:{color:'#8892a4',boxWidth:10,font:{size:11}}}}}});
+
+  const scMin=Math.floor((Math.min(d.low.pre,d.med.pre,d.hi.pre,d.low.rec,d.med.rec,d.hi.rec,d.ov.pre,d.ov.rec)-4)/2)*2;
+  mkC('prChart',{type:'scatter',
+    data:{datasets:[
+      {label:'Low',data:[{x:d.low.pre,y:d.low.rec}],backgroundColor:'#00f5a0',pointRadius:10,pointHoverRadius:13},
+      {label:'Medium',data:[{x:d.med.pre,y:d.med.rec}],backgroundColor:'#f5a623',pointRadius:10,pointHoverRadius:13},
+      {label:'High',data:[{x:d.hi.pre,y:d.hi.rec}],backgroundColor:'#f74f4f',pointRadius:10,pointHoverRadius:13},
+      {label:'Overall',data:[{x:d.ov.pre,y:d.ov.rec}],backgroundColor:'#b07ef7',pointRadius:12,pointHoverRadius:15,pointStyle:'star'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#8892a4',boxWidth:10,font:{size:11}}}},
+      scales:{
+        x:{min:Math.max(0,scMin),max:100,title:{display:true,text:'Precision %',color:'#5a6478',font:{size:11}},grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#5a6478',callback:v=>v+'%'}},
+        y:{min:Math.max(0,scMin),max:100,title:{display:true,text:'Recall %',color:'#5a6478',font:{size:11}},grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#5a6478',callback:v=>v+'%'}}}}});
+}
+
+function refreshConfMat(d){
+  const cm=d.cm;
+  const total=Object.values(cm).reduce((a,b)=>a+b,0);
+  const rows=[
+    ['','Pred LOW','Pred MED','Pred HIGH'],
+    ['Act LOW',cm.ll,cm.lm,cm.lh],
+    ['Act MED',cm.ml,cm.mm,cm.mh],
+    ['Act HIGH',cm.hl,cm.hm,cm.hh],
+  ];
+  document.getElementById('confMat').innerHTML=rows.map((row,ri)=>row.map((cell,ci)=>{
+    const isH=ri===0||ci===0,isDiag=ri>0&&ci>0&&ri===ci;
+    const pct=(!isH&&total>0)?` (${(cell/total*100).toFixed(0)}%)`:'';
+    return `<div class="cmat-cell" style="
+      background:${isDiag?'rgba(0,245,160,.15)':isH?'transparent':'rgba(255,255,255,.03)'};
+      color:${isDiag?'var(--acc)':isH?'var(--mut2)':'var(--txt)'};
+      font-weight:${isDiag?'700':'400'};font-size:${isH?'10':'13'}px;
+      border:${isDiag?'1px solid rgba(0,245,160,.3)':isH?'none':'1px solid var(--brd)'}">
+      ${cell}${pct}</div>`;
+  }).join('')).join('');
+}
+
+function refreshEFTable(d){
+  const ef=d.ef;
+  document.getElementById('efBody').innerHTML=`
+    <tr style="border-bottom:1px solid var(--brd)"><td style="padding:10px 6px;font-weight:600">Blink Rate</td><td style="padding:10px 6px;color:var(--low)">${ef.blink.lo[0]}–${ef.blink.lo[1]}/min</td><td style="padding:10px 6px;color:var(--med)">${ef.blink.me[0]}–${ef.blink.me[1]}/min</td><td style="padding:10px 6px;color:var(--hi)">${ef.blink.hi[0]}–${ef.blink.hi[1]}/min</td></tr>
+    <tr style="border-bottom:1px solid var(--brd)"><td style="padding:10px 6px;font-weight:600">Pupil Size</td><td style="padding:10px 6px;color:var(--low)">${ef.pupil.lo[0]}–${ef.pupil.lo[1]}px</td><td style="padding:10px 6px;color:var(--med)">${ef.pupil.me[0]}–${ef.pupil.me[1]}px</td><td style="padding:10px 6px;color:var(--hi)">${ef.pupil.hi[0]}–${ef.pupil.hi[1]}px</td></tr>
+    <tr style="border-bottom:1px solid var(--brd)"><td style="padding:10px 6px;font-weight:600">Gaze Direction</td><td style="padding:10px 6px;color:var(--low)">${ef.gaze.lo[0]}–${ef.gaze.lo[1]}°</td><td style="padding:10px 6px;color:var(--med)">${ef.gaze.me[0]}–${ef.gaze.me[1]}°</td><td style="padding:10px 6px;color:var(--hi)">${ef.gaze.hi[0]}–${ef.gaze.hi[1]}°</td></tr>
+    <tr><td style="padding:10px 6px;font-weight:600">Gaze Stability</td><td style="padding:10px 6px;color:var(--low)">${ef.stab.lo[0]}–${ef.stab.lo[1]}σ</td><td style="padding:10px 6px;color:var(--med)">${ef.stab.me[0]}–${ef.stab.me[1]}σ</td><td style="padding:10px 6px;color:var(--hi)">${ef.stab.hi[0]}–${ef.stab.hi[1]}σ</td></tr>`;
+}
+
+let FC=null;
+function updateFeatChart(){
+  const ids=['pupil','stab','blink','gaze'];
+  const names=['Pupil Size','Gaze Stability','Blink Rate','Gaze Direction'];
+  const cols=['rgba(0,245,160,.75)','rgba(176,126,247,.75)','rgba(79,142,247,.75)','rgba(245,166,35,.75)'];
+  const vals=ids.map(k=>{const v=parseInt(document.getElementById('fw-'+k).value);set('fw-'+k+'-v',v+'%');return v;});
+  if(FC)FC.destroy();
+  FC=new Chart(document.getElementById('featChart'),{type:'bar',
+    data:{labels:names,datasets:[{data:vals,backgroundColor:cols,borderRadius:6}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{min:0,max:100,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#5a6478',callback:v=>v+'%'}},
+        y:{grid:{display:false},ticks:{color:'#8892a4',font:{size:12}}}}}});
+}
+
+// ═══════════ DEBOUNCED LIVE UPDATE ═══════════
+let UT=null;
+function liveUpdate(){clearTimeout(UT);UT=setTimeout(()=>{refreshAll();toast('✓ Charts updated','success');},350);}
+function applyDataset(){refreshAll();toast('✓ All charts refreshed!','success');}
+
+// ═══════════ TABS ═══════════
+function switchTab(t){
+  ['model','baseline','eyefeat','csvimport'].forEach(id=>{
+    document.getElementById('tab-'+id).style.display=id===t?'':'none';
+  });
+  document.querySelectorAll('.tab').forEach((el,i)=>{
+    el.classList.toggle('act',['model','baseline','eyefeat','csvimport'][i]===t);
+  });
+}
+
+// ═══════════ NAV ═══════════
+document.querySelectorAll('.ni').forEach(el=>el.addEventListener('click',()=>goPage(el.dataset.page)));
+function goPage(p){
+  document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('act'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
+  document.getElementById('page-'+p).classList.add('act');
+  document.querySelector(`[data-page="${p}"]`).classList.add('act');
+  if(p==='sessions')renderSessions();
+  if(p==='analysis'){refreshConfMat(DS());refreshEFTable(DS());refreshSessStats();updateFeatChart();}
+}
+
+// ═══════════ SESSION STATE ═══════════
+const ST={active:false,timer:0,sint:null,sim:null,scen:'auto',autoStep:0,
+  stressH:[],sessData:[],sessions:JSON.parse(localStorage.getItem('se2_sess')||'[]'),
+  camStream:null,fc:0,fpt:0};
+const AUTO=['low','low','med','low','high','med','low','high','high','med'];
+
+function SCEN(){
+  const d=DS().ef;
+  return{
+    low:{blink:d.blink.lo,pupil:d.pupil.lo,gaze:d.gaze.lo,stab:d.stab.lo,pct:d.pct.lo,color:'#00f5a0',label:'LOW STRESS',   hint:'Normal blink · stable gaze · no pupil dilation detected'},
+    med:{blink:d.blink.me,pupil:d.pupil.me,gaze:d.gaze.me,stab:d.stab.me,pct:d.pct.me,color:'#f5a623',label:'MEDIUM STRESS',hint:'Elevated blink rate · moderate dilation · gaze drift detected'},
+    high:{blink:d.blink.hi,pupil:d.pupil.hi,gaze:d.gaze.hi,stab:d.stab.hi,pct:d.pct.hi,color:'#f74f4f',label:'HIGH STRESS', hint:'High blink rate · dilated pupils · unstable gaze fixation'},
+  };
+}
+
+async function toggleSession(){ST.active?stopSess():await startSess();}
+
+async function startSess(){
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}});
+    document.getElementById('camFeed').srcObject=stream;
+    ST.camStream=stream;
+    document.getElementById('noCam').style.display='none';
+    document.getElementById('camLabel').textContent='IR EYE TRACKING · LIVE';
+    document.getElementById('camStat').innerHTML='<div class="sdot live"></div><span style="margin-left:4px;color:var(--acc)">ACTIVE</span>';
+    startOverlay(document.getElementById('camFeed'));
+    toast('📷 Camera connected · eye tracking active','success');
+  }catch(e){
+    document.getElementById('noCam').innerHTML='<div style="font-size:32px;opacity:.3">🔴</div><div style="font-size:13px;font-weight:600">Camera unavailable</div><div style="font-size:11px;color:var(--mut);margin-top:4px">Simulation mode active — all metrics still work</div>';
+    toast('⚠️ No camera — simulation mode active','warn');
+  }
+  ST.active=true;ST.timer=0;ST.stressH=[];ST.sessData=[];ST.autoStep=0;
+  const sb=document.getElementById('startBtn');
+  sb.textContent='⏹ Stop Session';sb.style.cssText='background:var(--red);border-color:var(--red);color:#fff';
+  const sv=document.getElementById('saveBtn');sv.disabled=true;sv.style.opacity='.4';
+  document.getElementById('sdot').classList.add('live');
+  document.getElementById('sstat').textContent='Recording';
+  document.getElementById('liveBadge').textContent='ON';
+  document.getElementById('liveBadge').style.cssText='background:rgba(0,245,160,.2);color:var(--acc)';
+  ST.sint=setInterval(()=>{
+    ST.timer++;
+    const m=String(Math.floor(ST.timer/60)).padStart(2,'0'),s=String(ST.timer%60).padStart(2,'0');
+    set('timerDisp',`${m}:${s}`);
+  },1000);
+  initTL();
+  ST.sim=setInterval(simTick,1000);
+  simTick();
+}
+
+function stopSess(){
+  ST.active=false;
+  clearInterval(ST.sint);clearInterval(ST.sim);
+  if(ST.camStream){ST.camStream.getTracks().forEach(t=>t.stop());ST.camStream=null;}
+  document.getElementById('camFeed').srcObject=null;
+  document.getElementById('camStat').innerHTML='<div class="sdot"></div><span style="margin-left:4px">IDLE</span>';
+  document.getElementById('camLabel').textContent='SESSION ENDED';
+  const sb=document.getElementById('startBtn');
+  sb.textContent='▶ Start Session';sb.style.cssText='background:var(--acc);border-color:var(--acc);color:#000';
+  document.getElementById('sdot').classList.remove('live');
+  document.getElementById('sstat').textContent='Idle';
+  document.getElementById('liveBadge').textContent='OFF';
+  document.getElementById('liveBadge').style.cssText='';
+  if(ST.stressH.length>0){
+    const sv=document.getElementById('saveBtn');sv.disabled=false;sv.style.opacity='1';
+    toast('✅ Session ended · click Save to store it','success');
+  }
+}
+
+let TLC=null;
+function initTL(){
+  if(TLC)TLC.destroy();
+  TLC=new Chart(document.getElementById('tlChart'),{
+    type:'line',
+    data:{labels:[],datasets:[{label:'Stress %',data:[],borderColor:'#00f5a0',backgroundColor:'rgba(0,245,160,.07)',borderWidth:2,fill:true,tension:.4,pointRadius:0}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{display:false},y:{min:0,max:100,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#5a6478',font:{size:10},callback:v=>v+'%'}}}}});
+}
+
+function simTick(){
+  const scens=SCEN();
+  const sc=ST.scen==='auto'?AUTO[ST.autoStep++%AUTO.length]:ST.scen;
+  const cfg=scens[sc]||scens.low;
+  const blink=rnd(cfg.blink[0],cfg.blink[1],0),pupil=rnd(cfg.pupil[0],cfg.pupil[1],1);
+  const gaze=rnd(cfg.gaze[0],cfg.gaze[1],0),stab=rnd(cfg.stab[0],cfg.stab[1],2);
+  const pct=rnd(cfg.pct[0],cfg.pct[1],0);
+  set('mBlink',blink);set('mPupil',pupil);set('mGaze',gaze+'°');set('mStab',stab);
+  const arc=document.getElementById('gaugeArc');
+  arc.style.strokeDashoffset=377-(pct/100)*377;arc.style.stroke=cfg.color;
+  const gp=document.getElementById('gPct');gp.textContent=pct+'%';gp.style.color=cfg.color;
+  const vt=document.getElementById('vTag');vt.textContent=cfg.label;vt.style.color=cfg.color;
+  document.getElementById('vHint').textContent=cfg.hint;
+  if(TLC){
+    TLC.data.labels.push(ST.timer);
+    TLC.data.datasets[0].data.push(pct);
+    TLC.data.datasets[0].borderColor=cfg.color;
+    if(TLC.data.labels.length>60){TLC.data.labels.shift();TLC.data.datasets[0].data.shift();}
+    TLC.update('none');
+  }
+  ST.stressH.push(pct);
+  ST.sessData.push({t:ST.timer,blink,pupil,gaze,stab,pct,sc});
+  ST.fc++;
+  const now=Date.now();
+  if(now-ST.fpt>1000){set('camFps',`${ST.fc*60} FPS (sim)`);ST.fc=0;ST.fpt=now;}
+}
+
+function setScen(s){
+  ST.scen=s;
+  ['low','med','high','auto'].forEach(k=>{
+    const b=document.getElementById('sc'+k.charAt(0).toUpperCase()+k.slice(1));
+    if(b)b.style.cssText=k===s?'border-color:var(--acc);color:var(--acc)':'';
+  });
+  document.getElementById('scAuto').style.cssText=s==='auto'?'border-color:var(--acc);color:var(--acc)':'';
+  if(!ST.active)toast('Start a session first to see changes','warn');
+  else toast('Scenario: '+s.toUpperCase(),'success');
+}
+
+// ═══════════ CAMERA OVERLAY ═══════════
+function startOverlay(video){
+  const canvas=document.getElementById('camCanvas'),ctx=canvas.getContext('2d');
+  function draw(){
+    canvas.width=video.videoWidth||640;canvas.height=video.videoHeight||480;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='rgba(0,28,14,.22)';ctx.fillRect(0,0,canvas.width,canvas.height);
+    const cx=canvas.width/2,cy=canvas.height/2,t=Date.now()/1000;
+    const scanY=(Date.now()/12)%canvas.height;
+    const g=ctx.createLinearGradient(0,scanY-30,0,scanY+30);
+    g.addColorStop(0,'rgba(0,245,160,0)');g.addColorStop(.5,'rgba(0,245,160,.055)');g.addColorStop(1,'rgba(0,245,160,0)');
+    ctx.fillStyle=g;ctx.fillRect(0,scanY-30,canvas.width,60);
+    const r=28+Math.sin(t*2)*3;
+    ctx.strokeStyle='rgba(0,245,160,.65)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle='rgba(0,245,160,.35)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+    ctx.beginPath();ctx.moveTo(cx-55,cy);ctx.lineTo(cx+55,cy);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx,cy-55);ctx.lineTo(cx,cy+55);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle='rgba(0,245,160,.45)';ctx.lineWidth=1.5;ctx.strokeRect(cx-52,cy-32,104,64);
+    const gx=cx+Math.sin(t*.7)*18,gy=cy+Math.cos(t*.9)*11;
+    ctx.fillStyle='rgba(79,142,247,.85)';ctx.beginPath();ctx.arc(gx,gy,4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(0,245,160,.7)';ctx.font='9px Space Mono,monospace';
+    ctx.fillText('ROI',cx-52,cy-36);ctx.fillText('PUPIL Ø'+(28+Math.sin(t*2)*3).toFixed(1)+'px',cx+r+5,cy+4);
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ═══════════ SAVE SESSION ═══════════
+function saveSession(){
+  if(!ST.sessData.length)return;
+  const avg=a=>a.reduce((s,v)=>s+v,0)/a.length;
+  const blinks=ST.sessData.map(d=>d.blink),pupils=ST.sessData.map(d=>d.pupil);
+  const avgPct=avg(ST.stressH);
+  const sess={id:Date.now(),date:new Date().toLocaleString(),duration:ST.timer,
+    avgStress:avgPct.toFixed(1),peakLevel:avgPct<40?'Low':avgPct<65?'Medium':'High',
+    avgBlink:avg(blinks).toFixed(1),avgPupil:avg(pupils).toFixed(2)};
+  ST.sessions.unshift(sess);
+  localStorage.setItem('se2_sess',JSON.stringify(ST.sessions));
+  const sv=document.getElementById('saveBtn');sv.disabled=true;sv.style.opacity='.4';
+  toast('💾 Session saved!','success');
+}
+
+function renderSessions(){
+  const b=document.getElementById('sessBody');
+  if(!ST.sessions.length){b.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--mut);padding:40px">No sessions yet. Go to Live Monitor → Start Session → Save.</td></tr>';return;}
+  b.innerHTML=ST.sessions.map((s,i)=>{
+    const c=s.peakLevel==='Low'?'clo':s.peakLevel==='Medium'?'cme':'chi';
+    const dur=`${Math.floor(s.duration/60)}m ${s.duration%60}s`;
+    return `<tr>
+      <td style="font-family:var(--mono);color:var(--mut2)">${i+1}</td>
+      <td>${s.date}</td><td style="font-family:var(--mono)">${dur}</td>
+      <td style="font-family:var(--mono)">${s.avgStress}%</td>
+      <td><span class="chip ${c}">${s.peakLevel}</span></td>
+      <td style="font-family:var(--mono)">${s.avgBlink}/min</td>
+      <td style="font-family:var(--mono)">${s.avgPupil}px</td>
+      <td><button class="btn btn-d" style="font-size:11px;padding:3px 10px" onclick="delSess(${s.id})">🗑</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function delSess(id){ST.sessions=ST.sessions.filter(s=>s.id!==id);localStorage.setItem('se2_sess',JSON.stringify(ST.sessions));renderSessions();refreshSessStats();}
+function clearSessions(){ST.sessions=[];localStorage.removeItem('se2_sess');renderSessions();refreshSessStats();toast('🗑 Cleared','warn');}
+function exportSessions(){
+  if(!ST.sessions.length){toast('No sessions to export','warn');return;}
+  const rows=['#,Date,Duration,Avg Stress %,Peak Level,Avg Blink,Avg Pupil'];
+  ST.sessions.forEach((s,i)=>rows.push(`${i+1},"${s.date}","${Math.floor(s.duration/60)}m ${s.duration%60}s",${s.avgStress},${s.peakLevel},${s.avgBlink},${s.avgPupil}`));
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='StressEye_Sessions.csv';a.click();
+  toast('⬇ Sessions exported as CSV','success');
+}
+
+function refreshSessStats(){
+  const el=document.getElementById('sessStats');if(!el)return;
+  if(!ST.sessions.length){el.innerHTML='<span style="color:var(--mut2)">No sessions recorded yet.</span>';return;}
+  const avg=a=>a.reduce((s,v)=>s+v,0)/a.length;
+  const avgAll=avg(ST.sessions.map(s=>parseFloat(s.avgStress)));
+  const lo=ST.sessions.filter(s=>s.peakLevel==='Low').length;
+  const me=ST.sessions.filter(s=>s.peakLevel==='Medium').length;
+  const hi=ST.sessions.filter(s=>s.peakLevel==='High').length;
+  el.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd)"><span style="color:var(--mut2)">Total sessions</span><span style="font-family:var(--mono)">${ST.sessions.length}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd)"><span style="color:var(--mut2)">Avg stress overall</span><span style="font-family:var(--mono)">${avgAll.toFixed(1)}%</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd)"><span style="color:var(--low)">Low stress sessions</span><span style="font-family:var(--mono);color:var(--low)">${lo}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd)"><span style="color:var(--med)">Medium stress sessions</span><span style="font-family:var(--mono);color:var(--med)">${me}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0"><span style="color:var(--hi)">High stress sessions</span><span style="font-family:var(--mono);color:var(--hi)">${hi}</span></div>
+  </div>`;
+}
+
+// ═══════════ CSV IMPORT ═══════════
+let parsedCSV=null;
+function loadCSV(e){const f=e.target.files[0];if(f)readFile(f);}
+function dragOver(e){e.preventDefault();document.getElementById('dropZone').classList.add('drag');}
+function dragLeave(){document.getElementById('dropZone').classList.remove('drag');}
+function dropFile(e){e.preventDefault();dragLeave();const f=e.dataTransfer.files[0];if(f)readFile(f);}
+function readFile(f){const r=new FileReader();r.onload=ev=>parseCSV(ev.target.result);r.readAsText(f);}
+
+function parseCSV(txt){
+  const lines=txt.trim().split('\n').filter(l=>l.trim());
+  const headers=lines[0].split(',').map(h=>h.trim().toLowerCase());
+  const rows=lines.slice(1).map(l=>l.split(',').map(v=>v.trim()));
+  parsedCSV={headers,rows};
+  const card=document.getElementById('csvPreviewCard');card.style.display='';
+  document.getElementById('csvParsed').innerHTML=`<div style="overflow-x:auto"><table class="stbl">
+    <thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(r=>`<tr>${r.map(v=>`<td style="font-family:var(--mono)">${v||'—'}</td>`).join('')}</tr>`).join('')}</tbody>
+  </table></div><div style="margin-top:8px;font-size:12px;color:var(--mut2)">Detected ${rows.length} rows · ${headers.length} columns</div>`;
+  toast(`✓ Parsed ${rows.length} rows from CSV`,'success');
+}
+
+function loadSampleCSV(){
+  parseCSV(`metric,low,medium,high,overall\naccuracy,94.2,91.3,91.7,92.4\nprecision,93.5,90.8,91.1,91.8\nrecall,95.1,91.9,92.3,93.1\nf1,94.3,91.3,91.7,92.4\nparticipants,,,,248\nsessions_min,,,,30`);
+  toast('📄 Sample CSV loaded — click Apply to use it','success');
+}
+
+function applyCSVData(){
+  if(!parsedCSV)return;
+  const{headers,rows}=parsedCSV;
+  const mi=headers.indexOf('metric'),li=headers.indexOf('low'),mei=headers.indexOf('medium'),hi=headers.indexOf('high'),oi=headers.indexOf('overall');
+  if(mi<0){toast('CSV must have a "metric" column','warn');return;}
+  rows.forEach(r=>{
+    const metric=(r[mi]||'').toLowerCase().trim();
+    const setV=(id,idx)=>{if(idx>=0&&r[idx]!==undefined&&r[idx]!==''){const el=document.getElementById(id);if(el)el.value=isNaN(r[idx])?r[idx]:parseFloat(r[idx]);}};
+    if(metric==='accuracy'){setV('d-low-acc',li);setV('d-med-acc',mei);setV('d-hi-acc',hi);setV('d-ov-acc',oi);}
+    if(metric==='precision'){setV('d-low-pre',li);setV('d-med-pre',mei);setV('d-hi-pre',hi);setV('d-ov-pre',oi);}
+    if(metric==='recall'){setV('d-low-rec',li);setV('d-med-rec',mei);setV('d-hi-rec',hi);setV('d-ov-rec',oi);}
+    if(metric==='f1'){setV('d-low-f1',li);setV('d-med-f1',mei);setV('d-hi-f1',hi);setV('d-ov-f1',oi);}
+    if(metric==='participants'&&oi>=0&&r[oi]){const el=document.getElementById('d-par');if(el)el.value=r[oi];}
+    if(metric==='sessions_min'&&oi>=0&&r[oi]){const el=document.getElementById('d-sess');if(el)el.value=r[oi];}
+  });
+  refreshAll();
+  toast('✅ CSV data applied! All charts updated.','success');
+}
+
+// ═══════════ RESET ═══════════
+const DEF={'d-low-acc':94.2,'d-low-pre':93.5,'d-low-rec':95.1,'d-low-f1':94.3,'d-med-acc':91.3,'d-med-pre':90.8,'d-med-rec':91.9,'d-med-f1':91.3,'d-hi-acc':91.7,'d-hi-pre':91.1,'d-hi-rec':92.3,'d-hi-f1':91.7,'d-ov-acc':92.4,'d-ov-pre':91.8,'d-ov-rec':93.1,'d-ov-f1':92.4,'d-par':248,'d-sess':30,'d-fps':60,'d-lat':18,'d-latp':99.1,'d-dist-lo':31,'d-dist-me':35,'d-dist-hi':34,'b1v':92.4,'b2v':86.1,'b3v':84.3,'b4v':80.7,'b5v':73.8,'b1n':'Proposed CNN-LSTM','b2n':'SVM w/ Eye Features','b3n':'Unimodal Pupil CNN','b4n':'Facial Expression','b5n':'Rule-Based Classifier','cm-ll':94,'cm-lm':4,'cm-lh':2,'cm-ml':5,'cm-mm':91,'cm-mh':4,'cm-hl':3,'cm-hm':5,'cm-hh':92,'ef-bl-lo':14,'ef-bl-hi':20,'ef-bm-lo':20,'ef-bm-hi':30,'ef-bh-lo':30,'ef-bh-hi':45,'ef-pl-lo':3.8,'ef-pl-hi':4.5,'ef-pm-lo':4.5,'ef-pm-hi':5.5,'ef-ph-lo':5.5,'ef-ph-hi':7.0,'ef-gl-lo':8,'ef-gl-hi':14,'ef-gm-lo':14,'ef-gm-hi':22,'ef-gh-lo':22,'ef-gh-hi':35,'ef-sl-lo':0.5,'ef-sl-hi':1.0,'ef-sm-lo':1.0,'ef-sm-hi':1.8,'ef-sh-lo':2.0,'ef-sh-hi':3.5,'ef-pl-plo':15,'ef-pl-phi':38,'ef-pm-plo':42,'ef-pm-phi':65,'ef-ph-plo':68,'ef-ph-phi':90};
+function resetDataset(){Object.entries(DEF).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});refreshAll();toast('↺ Reset to project defaults','success');}
+
+// ═══════════ EXPORT REPORT ═══════════
+function exportReport(){
+  const d=DS();
+  const lines=['StressEye VR — Project Report','='.repeat(42),'Generated: '+new Date().toLocaleString(),'','TEAM','Karthika G S (23CSR041) · Kavin S (23CSR043) · Mohamedsalmankan S (23CSR052)','Velalar College of Engineering & Technology, Erode-638012','','PERFORMANCE (current dataset)','Accuracy : '+d.ov.acc+'%  |  Precision: '+d.ov.pre+'%  |  Recall: '+d.ov.rec+'%  |  F1: '+d.ov.f1+'%','Participants: '+d.par+' · Session: '+d.sess+'min · Latency: <'+d.lat+'ms ('+d.latp+'% within target)','','PER-CLASS','Low   : Acc '+d.low.acc+' | P '+d.low.pre+' | R '+d.low.rec+' | F1 '+d.low.f1,'Medium: Acc '+d.med.acc+' | P '+d.med.pre+' | R '+d.med.rec+' | F1 '+d.med.f1,'High  : Acc '+d.hi.acc+' | P '+d.hi.pre+' | R '+d.hi.rec+' | F1 '+d.hi.f1,'','BASELINES',...d.bn.map((n,i)=>n+': '+d.bl[i]+'%'),'','SESSIONS ('+ST.sessions.length+')',...(ST.sessions.length?ST.sessions.map((s,i)=>`${i+1}. ${s.date} | ${Math.floor(s.duration/60)}m${s.duration%60}s | Avg:${s.avgStress}% | ${s.peakLevel} | Blink:${s.avgBlink} | Pupil:${s.avgPupil}`):['None recorded'])];
+  const blob=new Blob([lines.join('\n')],{type:'text/plain'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='StressEye_Report_'+Date.now()+'.txt';a.click();
+  toast('⬇ Report exported!','success');
+}
+
+// ═══════════ UTILS ═══════════
+function rnd(min,max,dec){return +(Math.random()*(max-min)+min).toFixed(dec);}
+function set(id,v){const el=document.getElementById(id);if(el)el.innerHTML=v;}
+function toast(msg,type='success'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.style.borderLeftColor=type==='success'?'var(--acc)':type==='warn'?'var(--amb)':'var(--red)';
+  el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+// ═══════════ PRE-POPULATE DEMO SESSIONS ═══════════
+function seedDemoSessions(){
+  if(localStorage.getItem('se2_sess_seeded')==='1') return;
+  const now=Date.now();
+  const demo=[
+    {id:now-86400000*6,date:'5/14/2026, 10:12:04 AM',duration:1836,avgStress:'28.4',peakLevel:'Low',avgBlink:'16.2',avgPupil:'4.12'},
+    {id:now-86400000*5,date:'5/15/2026, 2:45:19 PM',duration:2100,avgStress:'54.7',peakLevel:'Medium',avgBlink:'22.5',avgPupil:'5.34'},
+    {id:now-86400000*4,date:'5/16/2026, 9:03:41 AM',duration:1920,avgStress:'35.1',peakLevel:'Low',avgBlink:'17.8',avgPupil:'4.41'},
+    {id:now-86400000*3,date:'5/17/2026, 3:30:27 PM',duration:2400,avgStress:'71.3',peakLevel:'High',avgBlink:'32.1',avgPupil:'6.78'},
+    {id:now-86400000*2,date:'5/18/2026, 11:22:55 AM',duration:1800,avgStress:'48.2',peakLevel:'Medium',avgBlink:'24.0',avgPupil:'5.01'},
+    {id:now-86400000*1,date:'5/19/2026, 4:10:08 PM',duration:2520,avgStress:'62.9',peakLevel:'Medium',avgBlink:'27.3',avgPupil:'5.89'},
+    {id:now-3600000,   date:'5/20/2026, 9:55:33 AM',duration:1980,avgStress:'31.6',peakLevel:'Low',avgBlink:'15.4',avgPupil:'4.28'},
+  ];
+  if(!ST.sessions.length){
+    ST.sessions=demo;
+    localStorage.setItem('se2_sess',JSON.stringify(ST.sessions));
+    localStorage.setItem('se2_sess_seeded','1');
+  }
+}
+
+window.addEventListener('load',()=>{seedDemoSessions();refreshAll();renderSessions();refreshSessStats();});
+</script>
+</body>
+</html>
